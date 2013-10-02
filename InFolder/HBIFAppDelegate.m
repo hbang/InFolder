@@ -144,7 +144,7 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 	CFRelease(data);
 }
 
-- (NSArray *)sendMessageAndReceiveResponse:(CFDictionaryRef)dictionary {
+- (CFArrayRef)sendMessageAndReceiveResponse:(CFDictionaryRef)dictionary {
 	[self sendMessage:dictionary];
 	
 	uint32_t size = 0;
@@ -184,7 +184,7 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 	}
 	
 	CFDataRef data = CFDataCreateWithBytesNoCopy(0, buffer, size, kCFAllocatorNull);
-	NSArray *response = [(NSArray *)CFPropertyListCreateWithData(0, data, kCFPropertyListImmutable, NULL, NULL) autorelease];
+	CFArrayRef response = CFPropertyListCreateWithData(0, data, kCFPropertyListImmutable, NULL, NULL);
 	
 	CFRelease(data);
 	free(buffer);
@@ -194,22 +194,31 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 
 - (void)getFolderNames {
 	@try {
-		NSArray *newIconState = [self sendMessageAndReceiveResponse:(CFDictionaryRef)[NSDictionary dictionaryWithObjectsAndKeys:
-			@"getIconState", @"command",
-			@"2", @"formatVersion",
-			nil]];
-		_iconState = [newIconState copy];
+        CFTypeRef keys[2];
+        keys[0] = CFSTR("command");
+        keys[1] = CFSTR("formatVersion");
+        
+        CFTypeRef values[2];
+        values[0] = CFSTR("getIconState");
+        values[1] = CFSTR("2");
+        
+        CFDictionaryRef message = CFDictionaryCreate(NULL, keys, values, 2, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+		CFArrayRef newIconState = [self sendMessageAndReceiveResponse:message];
+        CFRelease(message);
+		_iconState = CFArrayCreateMutableCopy(NULL, 0, newIconState);
 	} @catch (NSException *exception) {
 		[[NSAlert alertWithMessageText:NSLocalizedString(@"Whoops, something went wrong.", @"") defaultButton:NSLocalizedString(@"OK", nil) alternateButton:nil otherButton:nil informativeTextWithFormat:@"%@", exception.reason] beginSheetModalForWindow:_window modalDelegate:nil didEndSelector:nil contextInfo:NULL];
 		return;
 	}
 	
-	_folders = [[NSMutableArray alloc] init];
+	_folders = CFArrayCreateMutable(NULL, 0, &kCFTypeArrayCallBacks);
 	
-	for (NSArray *page in _iconState) {
-		for (NSDictionary *icon in page) {
+	for (int pagenum = 0;pagenum < CFArrayGetCount(_iconState);pagenum++) {
+        CFArrayRef page = CFArrayGetValueAtIndex(_iconState, pagenum);
+		for (int iconnum = 0;iconnum < CFArrayGetCount(page)) {
+            CFDictionaryRef icon = CFArrayGetValueAtIndex(page, iconnum);
 			if ([icon objectForKey:@"listType"] && [[icon objectForKey:@"listType"] isEqualToString:@"folder"]) {
-				[_folders addObject:icon];
+                CFArrayAppendValue(_folders, icon);
 				[_parentPopupButton addItemWithTitle:[icon objectForKey:@"displayName"]];
 				[_childPopupButton addItemWithTitle:[icon objectForKey:@"displayName"]];
 			}
@@ -220,7 +229,7 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 		[_childPopupButton selectItemAtIndex:1];
 	}
 	
-	if (_folders.count) {
+	if (CFArrayGetCount(_folders)) {
 		_parentPopupButton.enabled = YES;
 		_childPopupButton.enabled = YES;
 		_performButton.enabled = YES;
@@ -231,8 +240,8 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 #pragma mark - IBActions
 
 - (IBAction)perform:(id)sender {
-	NSDictionary *parentIcon = [_folders objectAtIndex:_parentPopupButton.indexOfSelectedItem];
-	NSDictionary *childIcon = [_folders objectAtIndex:_childPopupButton.indexOfSelectedItem];
+	NSDictionary *parentIcon = CFArrayGetValueAtIndex(_folders, _parentPopupButton.indexOfSelectedItem);
+	NSDictionary *childIcon = CFArrayGetValueAtIndex(_folders, _childPopupButton.indexOfSelectedItem);
 	NSString *parentName = _parentPopupButton.titleOfSelectedItem;
 	NSString *childName = _childPopupButton.titleOfSelectedItem;
 	

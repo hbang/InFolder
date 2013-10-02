@@ -20,8 +20,8 @@
 	
 	am_device *_device;
 	service_conn_t _connection;
-	NSMutableArray *_iconState;
-	NSMutableArray *_folders;
+	CFMutableArrayRef _iconState;
+	CFMutableArrayRef _folders;
 }
 
 @property (assign) IBOutlet NSWindow *window;
