@@ -130,9 +130,8 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 			am_device *device = info->dev;
 			
 			if (am_device_connect(device) == MDERR_OK && am_device_is_paired(device) && am_device_validate_pairing(device) == MDERR_OK && am_device_start_session(device) == MDERR_OK) {
-				NSString *firmware = [(NSString *)am_device_copy_value(device, 0, cf_str("ProductVersion")) autorelease];
-				
-				if (firmware.intValue < 7) {
+				CFStringRef firmware = am_device_copy_value(device, 0, cf_str("ProductVersion"));
+				if (cf_string_get_int_value(firmware) < 7) {
 					NSLog(@"device has incompatible firmware");
 					
 					[self disconnectFromDevice:device];
@@ -141,6 +140,7 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 					[[NSAlert alertWithMessageText:NSLocalizedString(@"This device is incompatible.", @"") defaultButton:NSLocalizedString(@"OK", @"") alternateButton:nil otherButton:nil informativeTextWithFormat:NSLocalizedString(@"The device you connected is running iOS %@. It must be running at least iOS 7.", @""), firmware] beginSheetModalForWindow:_window modalDelegate:nil didEndSelector:nil contextInfo:NULL];
 					break;
 				}
+                cf_release(firmware);
 				
 				connection = 0;
 				

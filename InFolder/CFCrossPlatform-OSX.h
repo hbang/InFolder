@@ -16,6 +16,7 @@
 #pragma mark CFString
 #define cf_str CFSTR
 #define cf_string_compare CFStringCompare
+#define cf_string_get_int_value CFStringGetIntValue
 
 #pragma mark CFPropertyList
 #define cf_property_list_create_data CFPropertyListCreateData
