@@ -20,6 +20,8 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 
 am_device *device;
 service_conn_t connection;
+CFMutableArrayRef iconState;
+CFMutableArrayRef folders;
 
 void sendMessage (CFDictionaryRef dictionary) {
 	assert(dictionary != NULL);
@@ -210,20 +212,20 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
         CFDictionaryRef message = cf_dictionary_create(NULL, keys, values, 2, &lCFTypeDictionaryKeyCallBacks, &lCFTypeDictionaryValueCallBacks);
 		CFArrayRef newIconState = sendMessageAndReceiveResponse(message);
         CFRelease(message);
-		_iconState = cf_array_create_mutable_copy(NULL, 0, newIconState);
+		iconState = cf_array_create_mutable_copy(NULL, 0, newIconState);
 	} @catch (NSException *exception) {
 		[[NSAlert alertWithMessageText:NSLocalizedString(@"Whoops, something went wrong.", @"") defaultButton:NSLocalizedString(@"OK", nil) alternateButton:nil otherButton:nil informativeTextWithFormat:@"%@", exception.reason] beginSheetModalForWindow:_window modalDelegate:nil didEndSelector:nil contextInfo:NULL];
 		return;
 	}
 	
-	_folders = cf_array_create_mutable(NULL, 0, &lCFTypeArrayCallBacks);
+	folders = cf_array_create_mutable(NULL, 0, &lCFTypeArrayCallBacks);
 	
-	for (int pagenum = 0;pagenum < cf_array_get_count(_iconState);pagenum++) {
-        CFArrayRef page = cf_array_get_value_at_index(_iconState, pagenum);
+	for (int pagenum = 0;pagenum < cf_array_get_count(iconState);pagenum++) {
+        CFArrayRef page = cf_array_get_value_at_index(iconState, pagenum);
 		for (int iconnum = 0;iconnum < cf_array_get_count(page);iconnum++) {
             CFDictionaryRef icon = cf_array_get_value_at_index(page, iconnum);
 			if (cf_string_compare(cf_dictionary_get_value(icon, cf_str("listType")), cf_str("folder"),0)) {
-                cf_array_append_value(_folders, icon);
+                cf_array_append_value(folders, icon);
 				[_parentPopupButton addItemWithTitle:cf_dictionary_get_value(icon, cf_str("displayName"))];
 				[_childPopupButton addItemWithTitle:cf_dictionary_get_value(icon, cf_str("displayName"))];
 			}
@@ -234,7 +236,7 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 		[_childPopupButton selectItemAtIndex:1];
 	}
 	
-	if (cf_array_get_count(_folders)) {
+	if (cf_array_get_count(folders)) {
 		_parentPopupButton.enabled = YES;
 		_childPopupButton.enabled = YES;
 		_performButton.enabled = YES;
@@ -245,8 +247,8 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 #pragma mark - IBActions
 
 - (IBAction)perform:(id)sender {
-	CFDictionaryRef parentIcon = cf_array_get_value_at_index(_folders, _parentPopupButton.indexOfSelectedItem);
-	CFDictionaryRef childIcon = cf_array_get_value_at_index(_folders, _childPopupButton.indexOfSelectedItem);
+	CFDictionaryRef parentIcon = cf_array_get_value_at_index(folders, _parentPopupButton.indexOfSelectedItem);
+	CFDictionaryRef childIcon = cf_array_get_value_at_index(folders, _childPopupButton.indexOfSelectedItem);
 	CFStringRef parentName = (CFStringRef)_parentPopupButton.titleOfSelectedItem;
 	CFStringRef childName = (CFStringRef)_childPopupButton.titleOfSelectedItem;
 	
@@ -264,10 +266,10 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 	unsigned pageIndex = 0;
 	unsigned iconIndex = 0;
 	
-    CFMutableArrayRef newIconState = cf_array_create_mutable_copy(NULL, 0, _iconState);
+    CFMutableArrayRef newIconState = cf_array_create_mutable_copy(NULL, 0, iconState);
 	
-	for (int pagenum = 0;pagenum < cf_array_get_count(_iconState);pagenum++) {
-        CFArrayRef page = cf_array_get_value_at_index(_iconState, pagenum);
+	for (int pagenum = 0;pagenum < cf_array_get_count(iconState);pagenum++) {
+        CFArrayRef page = cf_array_get_value_at_index(iconState, pagenum);
 		iconIndex = 0;
 		
 		for (int iconnum=0;iconnum<cf_array_get_count(page);iconnum++) {
@@ -303,13 +305,13 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
                 CFRelease(mutablePage);
 				
                 CFIndex childIconIndex = 0;
-                for (int i=0;i<cf_array_get_count(_folders);i++){
-                    if (cf_equal(cf_array_get_value_at_index(_folders,i),icon)){
+                for (int i=0;i<cf_array_get_count(folders);i++){
+                    if (cf_equal(cf_array_get_value_at_index(folders,i),icon)){
                         childIconIndex = i;
                         break;
                     }
                 }
-                cf_array_remove_value_at_index(_folders, childIconIndex);
+                cf_array_remove_value_at_index(folders, childIconIndex);
 				[_parentPopupButton removeItemAtIndex:childIconIndex];
 				[_childPopupButton removeItemAtIndex:childIconIndex];
 				
@@ -342,12 +344,12 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 
 	[[NSAlert alertWithMessageText:NSLocalizedString(@"Success!", @"") defaultButton:NSLocalizedString(@"OK", @"") alternateButton:nil otherButton:nil informativeTextWithFormat:NSLocalizedString(@"The folder “%@” has successfully been moved into the folder “%@”.", @""), childName, parentName] beginSheetModalForWindow:_window modalDelegate:nil didEndSelector:nil contextInfo:NULL];
 	
-    _iconState = cf_array_create_mutable_copy(NULL, 0, newIconState);
+    iconState = cf_array_create_mutable_copy(NULL, 0, newIconState);
 	cf_release(newIconState);
 }
 
 - (IBAction)performRefresh:(NSButton *)button {
-	cf_release(_iconState);
+	cf_release(iconState);
     
 	[self getFolderNames];
 }

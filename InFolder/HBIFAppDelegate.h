@@ -17,9 +17,6 @@
 	NSButton *_performButton;
 	NSButton *_refreshButton;
 	NSProgressIndicator *_progressIndicator;
-	
-	CFMutableArrayRef _iconState;
-	CFMutableArrayRef _folders;
 }
 
 @property (assign) IBOutlet NSWindow *window;
