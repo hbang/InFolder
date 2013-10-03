@@ -215,12 +215,12 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 	
 	for (int pagenum = 0;pagenum < CFArrayGetCount(_iconState);pagenum++) {
         CFArrayRef page = CFArrayGetValueAtIndex(_iconState, pagenum);
-		for (int iconnum = 0;iconnum < CFArrayGetCount(page)) {
+		for (int iconnum = 0;iconnum < CFArrayGetCount(page);iconnum++) {
             CFDictionaryRef icon = CFArrayGetValueAtIndex(page, iconnum);
-			if ([icon objectForKey:@"listType"] && [[icon objectForKey:@"listType"] isEqualToString:@"folder"]) {
+			if (CFStringCompare(CFDictionaryGetValue(icon, CFSTR("listType")), CFSTR("folder"),0)) {
                 CFArrayAppendValue(_folders, icon);
-				[_parentPopupButton addItemWithTitle:[icon objectForKey:@"displayName"]];
-				[_childPopupButton addItemWithTitle:[icon objectForKey:@"displayName"]];
+				[_parentPopupButton addItemWithTitle:CFDictionaryGetValue(icon, CFSTR("displayName"))];
+				[_childPopupButton addItemWithTitle:CFDictionaryGetValue(icon, CFSTR("displayName"))];
 			}
 		}
 	}
@@ -259,21 +259,24 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 	unsigned pageIndex = 0;
 	unsigned iconIndex = 0;
 	
-	NSMutableArray *newIconState = [_iconState mutableCopy];
+    CFMutableArrayRef newIconState = CFArrayCreateMutableCopy(NULL, 0, _iconState);
 	
-	for (NSArray *page in _iconState) {
+	for (int pagenum = 0;pagenum < CFArrayGetCount(_iconState);pagenum++) {
+        CFArrayRef page = CFArrayGetValueAtIndex(_iconState, pagenum);
 		iconIndex = 0;
 		
-		for (NSDictionary *icon in page) {
+		for (int iconnum=0;iconnum<CFArrayGetCount(page);iconnum++) {
+            CFDictionaryRef icon = CFArrayGetValueAtIndex(page, iconnum);
 			if (icon == parentIcon) {
-				NSMutableArray *mutablePage = page.mutableCopy;
-				NSMutableDictionary *mutableIcon = icon.mutableCopy;
-				NSMutableArray *mutableList = ((NSArray *)[mutableIcon objectForKey:@"iconLists"]).mutableCopy;
+				CFMutableArrayRef mutablePage = CFArrayCreateMutableCopy(NULL, 0, page);
+				CFMutableDictionaryRef mutableIcon = CFDictionaryCreateMutableCopy(NULL, 0, icon);
+				CFMutableArrayRef mutableList = CFArrayCreateMutableCopy(NULL, 0, CFDictionaryGetValue(mutableIcon, CFSTR("iconLists")));
 				
 				[mutableList addObject:@[ childIcon ]];
 				
 				[mutableIcon setObject:mutableList forKey:@"iconLists"];
-				[mutableList release];
+                CFDictionarySetValue(mutableIcon, CFSTR("iconLists"), mutableList);
+				CFRelease(mutableList);
 				
 				[mutablePage replaceObjectAtIndex:iconIndex withObject:mutableIcon];
 				[mutableIcon release];
