@@ -240,10 +240,10 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 #pragma mark - IBActions
 
 - (IBAction)perform:(id)sender {
-	NSDictionary *parentIcon = CFArrayGetValueAtIndex(_folders, _parentPopupButton.indexOfSelectedItem);
-	NSDictionary *childIcon = CFArrayGetValueAtIndex(_folders, _childPopupButton.indexOfSelectedItem);
-	NSString *parentName = _parentPopupButton.titleOfSelectedItem;
-	NSString *childName = _childPopupButton.titleOfSelectedItem;
+	CFDictionaryRef parentIcon = CFArrayGetValueAtIndex(_folders, _parentPopupButton.indexOfSelectedItem);
+	CFDictionaryRef childIcon = CFArrayGetValueAtIndex(_folders, _childPopupButton.indexOfSelectedItem);
+	CFStringRef parentName = (CFStringRef)_parentPopupButton.titleOfSelectedItem;
+	CFStringRef childName = (CFStringRef)_childPopupButton.titleOfSelectedItem;
 	
 	if (parentIcon == childIcon) {
 		[[NSAlert alertWithMessageText:NSLocalizedString(@"Please choose a different child folder.", @"") defaultButton:NSLocalizedString(@"OK", @"") alternateButton:nil otherButton:nil informativeTextWithFormat:NSLocalizedString(@"You can’t move a folder into itself!", @"")] beginSheetModalForWindow:_window modalDelegate:nil didEndSelector:nil contextInfo:NULL];
@@ -272,25 +272,28 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 				CFMutableDictionaryRef mutableIcon = CFDictionaryCreateMutableCopy(NULL, 0, icon);
 				CFMutableArrayRef mutableList = CFArrayCreateMutableCopy(NULL, 0, CFDictionaryGetValue(mutableIcon, CFSTR("iconLists")));
 				
-				[mutableList addObject:@[ childIcon ]];
+                CFTypeRef childIconValues[1];
+                childIconValues[0] = childIcon;
+                CFArrayRef childIconArray = CFArrayCreate(NULL, childIconValues, 1, &kCFTypeArrayCallBacks);
+                CFArrayAppendValue(mutableList, childIconArray);
+                CFRelease(childIconArray);
 				
-				[mutableIcon setObject:mutableList forKey:@"iconLists"];
                 CFDictionarySetValue(mutableIcon, CFSTR("iconLists"), mutableList);
 				CFRelease(mutableList);
 				
 				[mutablePage replaceObjectAtIndex:iconIndex withObject:mutableIcon];
-				[mutableIcon release];
+                CFRelease(mutableIcon);
 				
 				[newIconState replaceObjectAtIndex:pageIndex withObject:mutablePage];
-				[mutablePage release];
+                CFRelease(mutablePage);
 			} else if (icon == childIcon) {
-				NSMutableArray *mutablePage = page.mutableCopy;
-				[mutablePage removeObjectAtIndex:iconIndex];
+				CFMutableArrayRef mutablePage = CFArrayCreateMutableCopy(NULL, 0, page);
+                CFArrayRemoveValueAtIndex(mutablePage, iconIndex);
 				[newIconState replaceObjectAtIndex:pageIndex withObject:mutablePage];
-				[mutablePage release];
+                CFRelease(mutablePage);
 				
-				NSUInteger childIconIndex = [_folders indexOfObject:icon];
-				[_folders removeObject:icon];
+                CFIndex childIconIndex = CFArrayGetFirstIndexOfValue(_folders, CFRangeMake(0, 0), icon);
+                CFArrayRemoveValueAtIndex(_folders, childIconIndex);
 				[_parentPopupButton removeItemAtIndex:childIconIndex];
 				[_childPopupButton removeItemAtIndex:childIconIndex];
 				
