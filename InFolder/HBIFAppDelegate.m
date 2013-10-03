@@ -9,6 +9,7 @@
 #import "HBIFAppDelegate.h"
 #import "MobileDevice.h"
 #import <sys/socket.h>
+#import "CFCrossPlatform-OSX.h"
 
 #define AMSVC_SPRINGBOARD_SERVICES CFSTR("com.apple.springboardservices")
 
@@ -117,14 +118,14 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 - (void)sendMessage:(CFDictionaryRef)dictionary {
 	NSParameterAssert(dictionary);
 	
-	CFPropertyListRef data = CFPropertyListCreateData(NULL, dictionary, kCFPropertyListBinaryFormat_v1_0, 0, NULL);
+	CFPropertyListRef data = cf_property_list_create_data(NULL, dictionary, 200, 0, NULL);
 	
 	if (data == NULL) {
 		[NSException raise:@"HBIFDataSendingException" format:@"data == NULL"];
 		return;
 	}
 	
-	CFIndex length = CFDataGetLength(data);
+	CFIndex length = cf_data_get_length(data);
 	uint32_t size = 0;
 	size = htonl(length);
 	
@@ -134,7 +135,7 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 	}
 	
 	ssize_t bytesSent = 0;
-	bytesSent = send(_connection, CFDataGetBytePtr(data), length, 0);
+	bytesSent = send(_connection, cf_data_get_byte_ptr(data), length, 0);
 	
 	if (bytesSent != length) {
 		[NSException raise:@"HBIFDataSendingException" format:@"sending message data failed"];
@@ -183,8 +184,8 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 		dataBuffer += received;
 	}
 	
-	CFDataRef data = CFDataCreateWithBytesNoCopy(0, buffer, size, kCFAllocatorNull);
-	CFArrayRef response = CFPropertyListCreateWithData(0, data, kCFPropertyListImmutable, NULL, NULL);
+	CFDataRef data = cf_data_create_with_bytes_no_copy(0, buffer, size, kCFAllocatorNull);
+	CFArrayRef response = cf_property_list_create_with_data(0, data, 0, NULL, NULL);
 	
 	CFRelease(data);
 	free(buffer);
@@ -202,25 +203,25 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
         values[0] = CFSTR("getIconState");
         values[1] = CFSTR("2");
         
-        CFDictionaryRef message = CFDictionaryCreate(NULL, keys, values, 2, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+        CFDictionaryRef message = cf_dictionary_create(NULL, keys, values, 2, &lCFTypeDictionaryKeyCallBacks, &lCFTypeDictionaryValueCallBacks);
 		CFArrayRef newIconState = [self sendMessageAndReceiveResponse:message];
         CFRelease(message);
-		_iconState = CFArrayCreateMutableCopy(NULL, 0, newIconState);
+		_iconState = cf_array_create_mutable_copy(NULL, 0, newIconState);
 	} @catch (NSException *exception) {
 		[[NSAlert alertWithMessageText:NSLocalizedString(@"Whoops, something went wrong.", @"") defaultButton:NSLocalizedString(@"OK", nil) alternateButton:nil otherButton:nil informativeTextWithFormat:@"%@", exception.reason] beginSheetModalForWindow:_window modalDelegate:nil didEndSelector:nil contextInfo:NULL];
 		return;
 	}
 	
-	_folders = CFArrayCreateMutable(NULL, 0, &kCFTypeArrayCallBacks);
+	_folders = cf_array_create_mutable(NULL, 0, &lCFTypeArrayCallBacks);
 	
-	for (int pagenum = 0;pagenum < CFArrayGetCount(_iconState);pagenum++) {
-        CFArrayRef page = CFArrayGetValueAtIndex(_iconState, pagenum);
-		for (int iconnum = 0;iconnum < CFArrayGetCount(page);iconnum++) {
-            CFDictionaryRef icon = CFArrayGetValueAtIndex(page, iconnum);
-			if (CFStringCompare(CFDictionaryGetValue(icon, CFSTR("listType")), CFSTR("folder"),0)) {
-                CFArrayAppendValue(_folders, icon);
-				[_parentPopupButton addItemWithTitle:CFDictionaryGetValue(icon, CFSTR("displayName"))];
-				[_childPopupButton addItemWithTitle:CFDictionaryGetValue(icon, CFSTR("displayName"))];
+	for (int pagenum = 0;pagenum < cf_array_get_count(_iconState);pagenum++) {
+        CFArrayRef page = cf_array_get_value_at_index(_iconState, pagenum);
+		for (int iconnum = 0;iconnum < cf_array_get_count(page);iconnum++) {
+            CFDictionaryRef icon = cf_array_get_value_at_index(page, iconnum);
+			if (cf_string_compare(cf_dictionary_get_value(icon, CFSTR("listType")), CFSTR("folder"),0)) {
+                cf_array_append_value(_folders, icon);
+				[_parentPopupButton addItemWithTitle:cf_dictionary_get_value(icon, CFSTR("displayName"))];
+				[_childPopupButton addItemWithTitle:cf_dictionary_get_value(icon, CFSTR("displayName"))];
 			}
 		}
 	}
@@ -229,7 +230,7 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 		[_childPopupButton selectItemAtIndex:1];
 	}
 	
-	if (CFArrayGetCount(_folders)) {
+	if (cf_array_get_count(_folders)) {
 		_parentPopupButton.enabled = YES;
 		_childPopupButton.enabled = YES;
 		_performButton.enabled = YES;
@@ -240,8 +241,8 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 #pragma mark - IBActions
 
 - (IBAction)perform:(id)sender {
-	CFDictionaryRef parentIcon = CFArrayGetValueAtIndex(_folders, _parentPopupButton.indexOfSelectedItem);
-	CFDictionaryRef childIcon = CFArrayGetValueAtIndex(_folders, _childPopupButton.indexOfSelectedItem);
+	CFDictionaryRef parentIcon = cf_array_get_value_at_index(_folders, _parentPopupButton.indexOfSelectedItem);
+	CFDictionaryRef childIcon = cf_array_get_value_at_index(_folders, _childPopupButton.indexOfSelectedItem);
 	CFStringRef parentName = (CFStringRef)_parentPopupButton.titleOfSelectedItem;
 	CFStringRef childName = (CFStringRef)_childPopupButton.titleOfSelectedItem;
 	
@@ -259,26 +260,26 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 	unsigned pageIndex = 0;
 	unsigned iconIndex = 0;
 	
-    CFMutableArrayRef newIconState = CFArrayCreateMutableCopy(NULL, 0, _iconState);
+    CFMutableArrayRef newIconState = cf_array_create_mutable_copy(NULL, 0, _iconState);
 	
-	for (int pagenum = 0;pagenum < CFArrayGetCount(_iconState);pagenum++) {
-        CFArrayRef page = CFArrayGetValueAtIndex(_iconState, pagenum);
+	for (int pagenum = 0;pagenum < cf_array_get_count(_iconState);pagenum++) {
+        CFArrayRef page = cf_array_get_value_at_index(_iconState, pagenum);
 		iconIndex = 0;
 		
-		for (int iconnum=0;iconnum<CFArrayGetCount(page);iconnum++) {
-            CFDictionaryRef icon = CFArrayGetValueAtIndex(page, iconnum);
+		for (int iconnum=0;iconnum<cf_array_get_count(page);iconnum++) {
+            CFDictionaryRef icon = cf_array_get_value_at_index(page, iconnum);
 			if (icon == parentIcon) {
-				CFMutableArrayRef mutablePage = CFArrayCreateMutableCopy(NULL, 0, page);
-				CFMutableDictionaryRef mutableIcon = CFDictionaryCreateMutableCopy(NULL, 0, icon);
-				CFMutableArrayRef mutableList = CFArrayCreateMutableCopy(NULL, 0, CFDictionaryGetValue(mutableIcon, CFSTR("iconLists")));
+				CFMutableArrayRef mutablePage = cf_array_create_mutable_copy(NULL, 0, page);
+				CFMutableDictionaryRef mutableIcon = cf_dictionary_create_mutable_copy(NULL, 0, icon);
+				CFMutableArrayRef mutableList = cf_array_create_mutable_copy(NULL, 0, cf_dictionary_get_value(mutableIcon, CFSTR("iconLists")));
 				
                 CFTypeRef childIconValues[1];
                 childIconValues[0] = childIcon;
-                CFArrayRef childIconArray = CFArrayCreate(NULL, childIconValues, 1, &kCFTypeArrayCallBacks);
-                CFArrayAppendValue(mutableList, childIconArray);
+                CFArrayRef childIconArray = cf_array_create(NULL, childIconValues, 1, &lCFTypeArrayCallBacks);
+                cf_array_append_value(mutableList, childIconArray);
                 CFRelease(childIconArray);
 				
-                CFDictionarySetValue(mutableIcon, CFSTR("iconLists"), mutableList);
+                cf_dictionary_set_value(mutableIcon, CFSTR("iconLists"), mutableList);
 				CFRelease(mutableList);
 				
 				[mutablePage replaceObjectAtIndex:iconIndex withObject:mutableIcon];
@@ -287,13 +288,19 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 				[newIconState replaceObjectAtIndex:pageIndex withObject:mutablePage];
                 CFRelease(mutablePage);
 			} else if (icon == childIcon) {
-				CFMutableArrayRef mutablePage = CFArrayCreateMutableCopy(NULL, 0, page);
-                CFArrayRemoveValueAtIndex(mutablePage, iconIndex);
+				CFMutableArrayRef mutablePage = cf_array_create_mutable_copy(NULL, 0, page);
+                cf_array_remove_value_at_index(mutablePage, iconIndex);
 				[newIconState replaceObjectAtIndex:pageIndex withObject:mutablePage];
                 CFRelease(mutablePage);
 				
-                CFIndex childIconIndex = CFArrayGetFirstIndexOfValue(_folders, CFRangeMake(0, 0), icon);
-                CFArrayRemoveValueAtIndex(_folders, childIconIndex);
+                CFIndex childIconIndex = cf_array_get_first_index_of_value(_folders, CFRangeMake(0, 0), icon);
+                for (int i=0;i<cf_array_get_count(_folders);i++){
+                    if (cf_equal(cf_array_get_value_at_index(_folders,i),icon)){
+                        childIconIndex = i;
+                        break;
+                    }
+                }
+                cf_array_remove_value_at_index(_folders, childIconIndex);
 				[_parentPopupButton removeItemAtIndex:childIconIndex];
 				[_childPopupButton removeItemAtIndex:childIconIndex];
 				
