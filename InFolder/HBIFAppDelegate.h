@@ -18,8 +18,6 @@
 	NSButton *_refreshButton;
 	NSProgressIndicator *_progressIndicator;
 	
-	am_device *_device;
-	service_conn_t _connection;
 	CFMutableArrayRef _iconState;
 	CFMutableArrayRef _folders;
 }

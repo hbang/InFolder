@@ -10,11 +10,93 @@
 #import "MobileDevice.h"
 #import <sys/socket.h>
 #import "CFCrossPlatform-OSX.h"
+#import <assert.h>
 
 #define AMSVC_SPRINGBOARD_SERVICES cf_str("com.apple.springboardservices")
 
 void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, void *context) {
 	[(HBIFAppDelegate *)[NSApplication sharedApplication].delegate deviceNotificationReceivedWithInfo:info];
+}
+
+am_device *device;
+service_conn_t connection;
+
+void sendMessage (CFDictionaryRef dictionary) {
+	assert(dictionary != NULL);
+	
+	CFPropertyListRef data = cf_property_list_create_data(NULL, dictionary, 200, 0, NULL);
+	
+	if (data == NULL) {
+		[NSException raise:@"HBIFDataSendingException" format:@"data == NULL"];
+		return;
+	}
+	
+	CFIndex length = cf_data_get_length(data);
+	uint32_t size = 0;
+	size = htonl(length);
+	
+	if (send(connection, &size, sizeof(uint32_t), 0) != sizeof(size)) {
+		[NSException raise:@"HBIFDataSendingException" format:@"sending message size failed"];
+		return;
+	}
+	
+	ssize_t bytesSent = 0;
+	bytesSent = send(connection, cf_data_get_byte_ptr(data), length, 0);
+	
+	if (bytesSent != length) {
+		[NSException raise:@"HBIFDataSendingException" format:@"sending message data failed"];
+		return;
+	}
+	
+	CFRelease(data);
+}
+
+CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
+	sendMessage(dictionary);
+	
+	uint32_t size = 0;
+	
+	if (recv(connection, &size, sizeof(size), 0) != sizeof(uint32_t)) {
+		[NSException raise:@"HBIFDataReceivingException" format:@"receiving reply size failed"];
+		return nil;
+	}
+	
+	size = (uint32_t)ntohl(size);
+	
+	if (size < 1) {
+		[NSException raise:@"HBIFDataReceivingException" format:@"no data received"];
+		return nil;
+	}
+	
+	unsigned char *buffer = malloc(size);
+	
+	if (buffer == NULL) {
+		[NSException raise:@"HBIFDataReceivingException" format:@"allocating reply buffer failed"];
+		return nil;
+	}
+	
+	uint32_t remaining = size;
+	unsigned char *dataBuffer = buffer;
+    
+	while (remaining) {
+		uint32_t received = (uint32_t)recv(connection, dataBuffer, remaining, 0);
+		
+		if (received == 0) {
+			[NSException raise:@"HBIFDataReceivingException" format:@"reply truncated"];
+			return nil;
+		}
+		
+		remaining -= received;
+		dataBuffer += received;
+	}
+	
+	CFDataRef data = cf_data_create_with_bytes_no_copy(0, buffer, size, kCFAllocatorNull);
+	CFArrayRef response = cf_property_list_create_with_data(0, data, 0, NULL, NULL);
+	
+	CFRelease(data);
+	free(buffer);
+	
+	return response;
 }
 
 @implementation HBIFAppDelegate
@@ -38,7 +120,7 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 	switch (info->msg) {
 		case ADNCI_MSG_CONNECTED:
 		{
-			if (_device) {
+			if (device) {
 				break;
 			}
 
@@ -57,9 +139,9 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 					break;
 				}
 				
-				_connection = 0;
+				connection = 0;
 				
-				if (AMDeviceStartService(device, AMSVC_SPRINGBOARD_SERVICES, &_connection, NULL) != MDERR_OK) {
+				if (AMDeviceStartService(device, AMSVC_SPRINGBOARD_SERVICES, &connection, NULL) != MDERR_OK) {
 					NSLog(@"starting SpringBoardServices failed");
 					
 					[self disconnectFromDevice:device];
@@ -71,7 +153,7 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 				}
 				
 				AMDeviceRetain(device);
-				_device = device;
+				device = device;
 				
 				_deviceLabel.stringValue = [(NSString *)AMDeviceCopyValue(device, 0, cf_str("DeviceName")) autorelease];
 				
@@ -83,7 +165,7 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 			
 		case ADNCI_MSG_DISCONNECTED:
 		{
-			if (info->dev != _device) {
+			if (info->dev != device) {
 				break;
 			}
 			
@@ -97,9 +179,9 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 			_refreshButton.enabled = NO;
 			[_progressIndicator stopAnimation:self];
 			
-			[self disconnectFromDevice:_device];
-			_device = NULL;
-			_connection = 0;
+			[self disconnectFromDevice:device];
+			device = NULL;
+			connection = 0;
 			break;
 		}
 		
@@ -115,84 +197,6 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
 	AMDeviceDisconnect(device);
 }
 
-- (void)sendMessage:(CFDictionaryRef)dictionary {
-	NSParameterAssert(dictionary);
-	
-	CFPropertyListRef data = cf_property_list_create_data(NULL, dictionary, 200, 0, NULL);
-	
-	if (data == NULL) {
-		[NSException raise:@"HBIFDataSendingException" format:@"data == NULL"];
-		return;
-	}
-	
-	CFIndex length = cf_data_get_length(data);
-	uint32_t size = 0;
-	size = htonl(length);
-	
-	if (send(_connection, &size, sizeof(uint32_t), 0) != sizeof(size)) {
-		[NSException raise:@"HBIFDataSendingException" format:@"sending message size failed"];
-		return;
-	}
-	
-	ssize_t bytesSent = 0;
-	bytesSent = send(_connection, cf_data_get_byte_ptr(data), length, 0);
-	
-	if (bytesSent != length) {
-		[NSException raise:@"HBIFDataSendingException" format:@"sending message data failed"];
-		return;
-	}
-	
-	CFRelease(data);
-}
-
-- (CFArrayRef)sendMessageAndReceiveResponse:(CFDictionaryRef)dictionary {
-	[self sendMessage:dictionary];
-	
-	uint32_t size = 0;
-	
-	if (recv(_connection, &size, sizeof(size), 0) != sizeof(uint32_t)) {
-		[NSException raise:@"HBIFDataReceivingException" format:@"receiving reply size failed"];
-		return nil;
-	}
-	
-	size = (uint32_t)ntohl(size);
-	
-	if (size < 1) {
-		[NSException raise:@"HBIFDataReceivingException" format:@"no data received"];
-		return nil;
-	}
-	
-	unsigned char *buffer = malloc(size);
-	
-	if (buffer == NULL) {
-		[NSException raise:@"HBIFDataReceivingException" format:@"allocating reply buffer failed"];
-		return nil;
-	}
-	
-	uint32_t remaining = size;
-	unsigned char *dataBuffer = buffer;
-		
-	while (remaining) {
-		uint32_t received = (uint32_t)recv(_connection, dataBuffer, remaining, 0);
-		
-		if (received == 0) {
-			[NSException raise:@"HBIFDataReceivingException" format:@"reply truncated"];
-			return nil;
-		}
-		
-		remaining -= received;
-		dataBuffer += received;
-	}
-	
-	CFDataRef data = cf_data_create_with_bytes_no_copy(0, buffer, size, kCFAllocatorNull);
-	CFArrayRef response = cf_property_list_create_with_data(0, data, 0, NULL, NULL);
-	
-	CFRelease(data);
-	free(buffer);
-	
-	return response;
-}
-
 - (void)getFolderNames {
 	@try {
         CFTypeRef keys[2];
@@ -204,7 +208,7 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
         values[1] = cf_str("2");
         
         CFDictionaryRef message = cf_dictionary_create(NULL, keys, values, 2, &lCFTypeDictionaryKeyCallBacks, &lCFTypeDictionaryValueCallBacks);
-		CFArrayRef newIconState = [self sendMessageAndReceiveResponse:message];
+		CFArrayRef newIconState = sendMessageAndReceiveResponse(message);
         CFRelease(message);
 		_iconState = cf_array_create_mutable_copy(NULL, 0, newIconState);
 	} @catch (NSException *exception) {
@@ -327,7 +331,7 @@ void HBIFDeviceNotificationReceived(am_device_notification_callback_info *info, 
     values[1] = cf_str("iconState");
     
     CFDictionaryRef message = cf_dictionary_create(NULL, keys, values, 2, &lCFTypeDictionaryKeyCallBacks, &lCFTypeDictionaryValueCallBacks);
-	[self sendMessage:message];
+	sendMessage(message);
     cf_release(message);
 	
 	[_progressIndicator stopAnimation:self];
