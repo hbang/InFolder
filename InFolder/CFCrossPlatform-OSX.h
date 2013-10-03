@@ -9,9 +9,13 @@
 #ifndef CrossPlatform_OSX_h
 #define CrossPlatform_OSX_h
 
-#pragma mark Comparisons
-#define cf_string_compare CFStringCompare
+#pragma mark CFType
 #define cf_equal CFEqual
+#define cf_release CFRelease
+
+#pragma mark CFString
+#define cf_str CFSTR
+#define cf_string_compare CFStringCompare
 
 #pragma mark CFPropertyList
 #define cf_property_list_create_data CFPropertyListCreateData
@@ -24,11 +28,13 @@
 
 #pragma mark CFArray
 #define cf_array_create CFArrayCreate
+#define cf_array_create_copy CFArrayCreateCopy
 #define cf_array_create_mutable CFArrayCreateMutable
 #define cf_array_create_mutable_copy CFArrayCreateMutableCopy
 #define cf_array_get_count CFArrayGetCount
 #define cf_array_get_value_at_index CFArrayGetValueAtIndex
 #define cf_array_append_value CFArrayAppendValue
+#define cf_array_insert_value_at_index CFArrayInsertValueAtIndex
 #define cf_array_remove_value_at_index CFArrayRemoveValueAtIndex
 #define cf_array_get_first_index_of_value CFArrayGetFirstIndexOfValue
 
