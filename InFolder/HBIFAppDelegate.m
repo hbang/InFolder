@@ -10,6 +10,7 @@
 #import "MobileDevice.h"
 #import <sys/socket.h>
 #import "CFCrossPlatform-OSX.h"
+#import "iMDCrossPlatform-OSX.h"
 #import <assert.h>
 
 #define AMSVC_SPRINGBOARD_SERVICES cf_str("com.apple.springboardservices")
@@ -109,7 +110,7 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
 	am_device_notification *deviceNotification;
-	AMDeviceNotificationSubscribe(HBIFDeviceNotificationReceived, 0, 0, NULL, &deviceNotification);
+	am_device_notification_subscribe(HBIFDeviceNotificationReceived, 0, 0, NULL, &deviceNotification);
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
@@ -128,8 +129,8 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 
 			am_device *device = info->dev;
 			
-			if (AMDeviceConnect(device) == MDERR_OK && AMDeviceIsPaired(device) && AMDeviceValidatePairing(device) == MDERR_OK && AMDeviceStartSession(device) == MDERR_OK) {
-				NSString *firmware = [(NSString *)AMDeviceCopyValue(device, 0, cf_str("ProductVersion")) autorelease];
+			if (am_device_connect(device) == MDERR_OK && am_device_is_paired(device) && am_device_validate_pairing(device) == MDERR_OK && am_device_start_session(device) == MDERR_OK) {
+				NSString *firmware = [(NSString *)am_device_copy_value(device, 0, cf_str("ProductVersion")) autorelease];
 				
 				if (firmware.intValue < 7) {
 					NSLog(@"device has incompatible firmware");
@@ -143,7 +144,7 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 				
 				connection = 0;
 				
-				if (AMDeviceStartService(device, AMSVC_SPRINGBOARD_SERVICES, &connection, NULL) != MDERR_OK) {
+				if (am_device_start_service(device, AMSVC_SPRINGBOARD_SERVICES, &connection, NULL) != MDERR_OK) {
 					NSLog(@"starting SpringBoardServices failed");
 					
 					[self disconnectFromDevice:device];
@@ -154,10 +155,10 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 					break;
 				}
 				
-				AMDeviceRetain(device);
+				am_device_retain(device);
 				device = device;
 				
-				_deviceLabel.stringValue = [(NSString *)AMDeviceCopyValue(device, 0, cf_str("DeviceName")) autorelease];
+				_deviceLabel.stringValue = [(NSString *)am_device_copy_value(device, 0, cf_str("DeviceName")) autorelease];
 				
 				[self getFolderNames];
 			}
@@ -194,9 +195,9 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 }
 
 - (void)disconnectFromDevice:(am_device *)device {
-	AMDeviceRelease(device);
-	AMDeviceStopSession(device);
-	AMDeviceDisconnect(device);
+	am_device_release(device);
+	am_device_stop_session(device);
+	am_device_disconnect(device);
 }
 
 - (void)getFolderNames {

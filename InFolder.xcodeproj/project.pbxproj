@@ -32,6 +32,7 @@
 		CF506F8D17ED2F56009ACCF0 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		CF506FA917ED3ADF009ACCF0 /* MobileDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MobileDevice.h; sourceTree = "<group>"; };
 		CF506FAF17ED3B60009ACCF0 /* MobileDevice.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MobileDevice.framework; path = ../../../../../System/Library/PrivateFrameworks/MobileDevice.framework; sourceTree = "<group>"; };
+		F1A35EA617FE28E300CACE49 /* iMDCrossPlatform-OSX.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "iMDCrossPlatform-OSX.h"; sourceTree = "<group>"; };
 		F1EEE54417FD3F5E005DB56F /* CFCrossPlatform-OSX.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CFCrossPlatform-OSX.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -130,6 +131,7 @@
 				CF506F8717ED2F56009ACCF0 /* HBIFAppDelegate.h */,
 				CF506F8817ED2F56009ACCF0 /* HBIFAppDelegate.m */,
 				F1EEE54417FD3F5E005DB56F /* CFCrossPlatform-OSX.h */,
+				F1A35EA617FE28E300CACE49 /* iMDCrossPlatform-OSX.h */,
 			);
 			name = HBIFAppDelegate;
 			sourceTree = "<group>";
