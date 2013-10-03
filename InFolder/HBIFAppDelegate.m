@@ -213,6 +213,7 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 		CFArrayRef newIconState = sendMessageAndReceiveResponse(message);
         CFRelease(message);
 		iconState = cf_array_create_mutable_copy(NULL, 0, newIconState);
+        cf_release(newIconState);
 	} @catch (NSException *exception) {
 		[[NSAlert alertWithMessageText:NSLocalizedString(@"Whoops, something went wrong.", @"") defaultButton:NSLocalizedString(@"OK", nil) alternateButton:nil otherButton:nil informativeTextWithFormat:@"%@", exception.reason] beginSheetModalForWindow:_window modalDelegate:nil didEndSelector:nil contextInfo:NULL];
 		return;
