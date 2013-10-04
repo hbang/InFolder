@@ -38,13 +38,13 @@ void sendMessage (CFDictionaryRef dictionary) {
 	uint32_t size = 0;
 	size = htonl(length);
 	
-	if (send(connection, &size, sizeof(uint32_t), 0) != sizeof(size)) {
+	if (send(connection, (const char *)&size, sizeof(uint32_t), 0) != sizeof(size)) {
 		assert(1);
 		return;
 	}
 	
 	ssize_t bytesSent = 0;
-	bytesSent = send(connection, cf_data_get_byte_ptr(data), length, 0);
+	bytesSent = send(connection, (const char *)cf_data_get_byte_ptr(data), length, 0);
 	
 	if (bytesSent != length) {
 		assert(1);
