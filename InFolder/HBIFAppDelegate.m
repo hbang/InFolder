@@ -51,7 +51,7 @@ void sendMessage (CFDictionaryRef dictionary) {
 		return;
 	}
 	
-	CFRelease(data);
+	cf_release(data);
 }
 
 CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
@@ -96,10 +96,16 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 	CFDataRef data = cf_data_create_with_bytes_no_copy(0, buffer, size, kCFAllocatorNull);
 	CFArrayRef response = cf_property_list_create_with_data(0, data, 0, NULL, NULL);
 	
-	CFRelease(data);
+	cf_release(data);
 	free(buffer);
 	
 	return response;
+}
+
+void disconnectFromDevice(am_device *device) {
+	am_device_release(device);
+	am_device_stop_session(device);
+	am_device_disconnect(device);
 }
 
 @implementation HBIFAppDelegate
@@ -132,9 +138,8 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 			if (am_device_connect(device) == MDERR_OK && am_device_is_paired(device) && am_device_validate_pairing(device) == MDERR_OK && am_device_start_session(device) == MDERR_OK) {
 				CFStringRef firmware = am_device_copy_value(device, 0, cf_str("ProductVersion"));
 				if (cf_string_get_int_value(firmware) < 7) {
-					NSLog(@"device has incompatible firmware");
 					
-					[self disconnectFromDevice:device];
+					disconnectFromDevice(device);
 					device = NULL;
 					
 					[[NSAlert alertWithMessageText:NSLocalizedString(@"This device is incompatible.", @"") defaultButton:NSLocalizedString(@"OK", @"") alternateButton:nil otherButton:nil informativeTextWithFormat:NSLocalizedString(@"The device you connected is running iOS %@. It must be running at least iOS 7.", @""), firmware] beginSheetModalForWindow:_window modalDelegate:nil didEndSelector:nil contextInfo:NULL];
@@ -145,9 +150,8 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 				connection = 0;
 				
 				if (am_device_start_service(device, AMSVC_SPRINGBOARD_SERVICES, &connection, NULL) != MDERR_OK) {
-					NSLog(@"starting SpringBoardServices failed");
 					
-					[self disconnectFromDevice:device];
+                    disconnectFromDevice(device);
 					device = NULL;
 					
 					// there seem to be some false positives, so let's just not tell the user for now.
@@ -182,22 +186,15 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 			_refreshButton.enabled = NO;
 			[_progressIndicator stopAnimation:self];
 			
-			[self disconnectFromDevice:device];
+            disconnectFromDevice(device);
 			device = NULL;
 			connection = 0;
 			break;
 		}
 		
 		default:
-			NSLog(@"unknown device notification received: %x", info->msg);
 			break;
 	}
-}
-
-- (void)disconnectFromDevice:(am_device *)device {
-	am_device_release(device);
-	am_device_stop_session(device);
-	am_device_disconnect(device);
 }
 
 - (void)getFolderNames {
@@ -212,7 +209,7 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
         
         CFDictionaryRef message = cf_dictionary_create(NULL, keys, values, 2, &lCFTypeDictionaryKeyCallBacks, &lCFTypeDictionaryValueCallBacks);
 		CFArrayRef newIconState = sendMessageAndReceiveResponse(message);
-        CFRelease(message);
+        cf_release(message);
 		iconState = cf_array_create_mutable_copy(NULL, 0, newIconState);
         cf_release(newIconState);
 	} @catch (NSException *exception) {
@@ -285,18 +282,18 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
                 childIconValues[0] = childIcon;
                 CFArrayRef childIconArray = cf_array_create(NULL, childIconValues, 1, &lCFTypeArrayCallBacks);
                 cf_array_append_value(mutableList, childIconArray);
-                CFRelease(childIconArray);
+                cf_release(childIconArray);
 				
                 cf_dictionary_set_value(mutableIcon, cf_str("iconLists"), mutableList);
-				CFRelease(mutableList);
+				cf_release(mutableList);
 				
                 cf_array_insert_value_at_index(mutablePage, iconIndex+1,mutableIcon);
                 cf_array_remove_value_at_index(mutablePage, iconIndex);
-                CFRelease(mutableIcon);
+                cf_release(mutableIcon);
 				
                 cf_array_insert_value_at_index(newIconState, pageIndex+1,mutablePage);
                 cf_array_remove_value_at_index(newIconState, pageIndex);
-                CFRelease(mutablePage);
+                cf_release(mutablePage);
 			} else if (icon == childIcon) {
 				CFMutableArrayRef mutablePage = cf_array_create_mutable_copy(NULL, 0, page);
                 cf_array_remove_value_at_index(mutablePage, iconIndex);
@@ -304,7 +301,7 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
                 cf_array_insert_value_at_index(newIconState, pageIndex+1,mutablePage);
                 cf_array_remove_value_at_index(newIconState, pageIndex);
                 
-                CFRelease(mutablePage);
+                cf_release(mutablePage);
 				
                 CFIndex childIconIndex = 0;
                 for (int i=0;i<cf_array_get_count(folders);i++){
