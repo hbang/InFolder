@@ -93,7 +93,7 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 		dataBuffer += received;
 	}
 	
-	CFDataRef data = cf_data_create_with_bytes_no_copy(0, (const UInt8 *)buffer, size, kCFAllocatorNull);
+	CFDataRef data = cf_data_create_with_bytes_no_copy(0, (const UInt8 *)buffer, size, lCFAllocatorNull);
 	CFArrayRef response = (CFArrayRef)cf_property_list_create_with_data(0, data, 0, NULL, NULL);
 	
 	cf_release(data);

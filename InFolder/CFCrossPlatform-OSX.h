@@ -48,5 +48,5 @@
 #define lCFTypeArrayCallBacks kCFTypeArrayCallBacks
 #define lCFTypeDictionaryKeyCallBacks kCFTypeDictionaryKeyCallBacks
 #define lCFTypeDictionaryValueCallBacks kCFTypeDictionaryValueCallBacks
-
+#define lCFAllocatorNull kCFAllocatorNull
 #endif
