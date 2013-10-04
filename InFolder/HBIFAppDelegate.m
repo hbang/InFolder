@@ -141,8 +141,11 @@ void disconnectFromDevice(am_device *device) {
 					
 					disconnectFromDevice(device);
 					device = NULL;
-					
+#if TARGET_OS_MAC
 					[[NSAlert alertWithMessageText:NSLocalizedString(@"This device is incompatible.", @"") defaultButton:NSLocalizedString(@"OK", @"") alternateButton:nil otherButton:nil informativeTextWithFormat:NSLocalizedString(@"The device you connected is running iOS %@. It must be running at least iOS 7.", @""), firmware] beginSheetModalForWindow:_window modalDelegate:nil didEndSelector:nil contextInfo:NULL];
+#endif
+#if TARGET_OS_WIN32
+#endif
 					break;
 				}
                 cf_release(firmware);
@@ -161,10 +164,12 @@ void disconnectFromDevice(am_device *device) {
 				
 				am_device_retain(device);
 				device = device;
-				
+    
+#if TARGET_OS_MAC
 				_deviceLabel.stringValue = [(NSString *)am_device_copy_value(device, 0, cf_str("DeviceName")) autorelease];
 				
 				[self getFolderNames];
+#endif
 			}
 			
 			break;
@@ -176,6 +181,7 @@ void disconnectFromDevice(am_device *device) {
 				break;
 			}
 			
+#if TARGET_OS_MAC
 			_deviceLabel.stringValue = NSLocalizedString(@"No Device Connected", @"");
 			[_parentPopupButton removeAllItems];
 			[_childPopupButton removeAllItems];
@@ -185,7 +191,7 @@ void disconnectFromDevice(am_device *device) {
 			_performButton.enabled = NO;
 			_refreshButton.enabled = NO;
 			[_progressIndicator stopAnimation:self];
-			
+#endif
             disconnectFromDevice(device);
 			device = NULL;
 			connection = 0;
