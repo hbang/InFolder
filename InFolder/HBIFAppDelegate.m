@@ -27,7 +27,7 @@ CFMutableArrayRef folders;
 void sendMessage (CFDictionaryRef dictionary) {
 	assert(dictionary != NULL);
 	
-	CFPropertyListRef data = cf_property_list_create_data(NULL, dictionary, 200, 0, NULL);
+	CFDataRef data = cf_property_list_create_data(NULL, dictionary, 200, 0, NULL);
 	
 	if (data == NULL) {
 		assert(1);

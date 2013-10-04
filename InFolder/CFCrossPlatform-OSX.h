@@ -37,7 +37,6 @@
 #define cf_array_append_value CFArrayAppendValue
 #define cf_array_insert_value_at_index CFArrayInsertValueAtIndex
 #define cf_array_remove_value_at_index CFArrayRemoveValueAtIndex
-#define cf_array_get_first_index_of_value CFArrayGetFirstIndexOfValue
 
 #pragma mark CFDictionary
 #define cf_dictionary_create CFDictionaryCreate
