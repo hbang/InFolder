@@ -59,7 +59,7 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 	
 	uint32_t size = 0;
 	
-	if (recv(connection, &size, sizeof(size), 0) != sizeof(uint32_t)) {
+	if (recv(connection, (char *)&size, sizeof(size), 0) != sizeof(uint32_t)) {
 		assert(1);
 		return nil;
 	}
@@ -71,7 +71,7 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 		return nil;
 	}
 	
-	unsigned char *buffer = malloc(size);
+	char *buffer = (char *)malloc(size);
 	
 	if (buffer == NULL) {
 		assert(1);
@@ -79,7 +79,7 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 	}
 	
 	uint32_t remaining = size;
-	unsigned char *dataBuffer = buffer;
+	char *dataBuffer = buffer;
     
 	while (remaining) {
 		uint32_t received = (uint32_t)recv(connection, dataBuffer, remaining, 0);
@@ -93,8 +93,8 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 		dataBuffer += received;
 	}
 	
-	CFDataRef data = cf_data_create_with_bytes_no_copy(0, buffer, size, kCFAllocatorNull);
-	CFArrayRef response = cf_property_list_create_with_data(0, data, 0, NULL, NULL);
+	CFDataRef data = cf_data_create_with_bytes_no_copy(0, (const UInt8 *)buffer, size, kCFAllocatorNull);
+	CFArrayRef response = (CFArrayRef)cf_property_list_create_with_data(0, data, 0, NULL, NULL);
 	
 	cf_release(data);
 	free(buffer);
