@@ -30,7 +30,7 @@ void sendMessage (CFDictionaryRef dictionary) {
 	CFPropertyListRef data = cf_property_list_create_data(NULL, dictionary, 200, 0, NULL);
 	
 	if (data == NULL) {
-		[NSException raise:@"HBIFDataSendingException" format:@"data == NULL"];
+		assert(1);
 		return;
 	}
 	
@@ -39,7 +39,7 @@ void sendMessage (CFDictionaryRef dictionary) {
 	size = htonl(length);
 	
 	if (send(connection, &size, sizeof(uint32_t), 0) != sizeof(size)) {
-		[NSException raise:@"HBIFDataSendingException" format:@"sending message size failed"];
+		assert(1);
 		return;
 	}
 	
@@ -47,7 +47,7 @@ void sendMessage (CFDictionaryRef dictionary) {
 	bytesSent = send(connection, cf_data_get_byte_ptr(data), length, 0);
 	
 	if (bytesSent != length) {
-		[NSException raise:@"HBIFDataSendingException" format:@"sending message data failed"];
+		assert(1);
 		return;
 	}
 	
@@ -60,21 +60,21 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 	uint32_t size = 0;
 	
 	if (recv(connection, &size, sizeof(size), 0) != sizeof(uint32_t)) {
-		[NSException raise:@"HBIFDataReceivingException" format:@"receiving reply size failed"];
+		assert(1);
 		return nil;
 	}
 	
 	size = (uint32_t)ntohl(size);
 	
 	if (size < 1) {
-		[NSException raise:@"HBIFDataReceivingException" format:@"no data received"];
+		assert(1);
 		return nil;
 	}
 	
 	unsigned char *buffer = malloc(size);
 	
 	if (buffer == NULL) {
-		[NSException raise:@"HBIFDataReceivingException" format:@"allocating reply buffer failed"];
+		assert(1);
 		return nil;
 	}
 	
@@ -85,7 +85,7 @@ CFArrayRef sendMessageAndReceiveResponse (CFDictionaryRef dictionary){
 		uint32_t received = (uint32_t)recv(connection, dataBuffer, remaining, 0);
 		
 		if (received == 0) {
-			[NSException raise:@"HBIFDataReceivingException" format:@"reply truncated"];
+			assert(1);
 			return nil;
 		}
 		
@@ -198,24 +198,19 @@ void disconnectFromDevice(am_device *device) {
 }
 
 - (void)getFolderNames {
-	@try {
-        CFTypeRef keys[2];
-        keys[0] = cf_str("command");
-        keys[1] = cf_str("formatVersion");
+    CFTypeRef keys[2];
+    keys[0] = cf_str("command");
+    keys[1] = cf_str("formatVersion");
         
-        CFTypeRef values[2];
-        values[0] = cf_str("getIconState");
-        values[1] = cf_str("2");
+    CFTypeRef values[2];
+    values[0] = cf_str("getIconState");
+    values[1] = cf_str("2");
         
-        CFDictionaryRef message = cf_dictionary_create(NULL, keys, values, 2, &lCFTypeDictionaryKeyCallBacks, &lCFTypeDictionaryValueCallBacks);
-		CFArrayRef newIconState = sendMessageAndReceiveResponse(message);
-        cf_release(message);
-		iconState = cf_array_create_mutable_copy(NULL, 0, newIconState);
-        cf_release(newIconState);
-	} @catch (NSException *exception) {
-		[[NSAlert alertWithMessageText:NSLocalizedString(@"Whoops, something went wrong.", @"") defaultButton:NSLocalizedString(@"OK", nil) alternateButton:nil otherButton:nil informativeTextWithFormat:@"%@", exception.reason] beginSheetModalForWindow:_window modalDelegate:nil didEndSelector:nil contextInfo:NULL];
-		return;
-	}
+    CFDictionaryRef message = cf_dictionary_create(NULL, keys, values, 2, &lCFTypeDictionaryKeyCallBacks, &lCFTypeDictionaryValueCallBacks);
+    CFArrayRef newIconState = sendMessageAndReceiveResponse(message);
+    cf_release(message);
+    iconState = cf_array_create_mutable_copy(NULL, 0, newIconState);
+    cf_release(newIconState);
 	
 	folders = cf_array_create_mutable(NULL, 0, &lCFTypeArrayCallBacks);
 	
