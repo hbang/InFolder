@@ -45,8 +45,8 @@
 #define cf_dictionary_set_value CFDictionarySetValue
 
 #pragma mark constants
-#define lCFTypeArrayCallBacks kCFTypeArrayCallBacks
-#define lCFTypeDictionaryKeyCallBacks kCFTypeDictionaryKeyCallBacks
-#define lCFTypeDictionaryValueCallBacks kCFTypeDictionaryValueCallBacks
+#define lCFTypeArrayCallBacks &kCFTypeArrayCallBacks
+#define lCFTypeDictionaryKeyCallBacks &kCFTypeDictionaryKeyCallBacks
+#define lCFTypeDictionaryValueCallBacks &kCFTypeDictionaryValueCallBacks
 #define lCFAllocatorNull kCFAllocatorNull
 #endif
